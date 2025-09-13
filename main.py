@@ -3,32 +3,23 @@ import json
 from core.tabla_hash import HashTable
 from core.articulos import articulo
 from core.hash_utils import HashUtils
+from core.indices import IndiceAutor, IndiceTitulo
+from core.storage import Storage
 
 class Main:
     def __init__(self):
         self.tabla = HashTable()
-        self.indice_autor = {}
+        self.indice_autor = IndiceAutor()
+        self.indice_titulo = IndiceTitulo()
         self.cargar_base_datos()
         self.ejecutar_menu()
 
     def cargar_base_datos(self):
-        if not os.path.exists("articulos_db.txt"):
-            return 
-        with open("articulos_db.txt", "r", encoding="utf-8") as f:
-            for linea in f:
-                linea = linea.strip()
-                if not linea:
-                    continue
-                try:
-                    data = json.loads(linea)
-                    art = articulo.from_dict(data)
-                    self.tabla.insertar(art.hash, art)
-                    if art.autor in self.indice_autor:
-                        self.indice_autor[art.autor].append(art)
-                    else:
-                        self.indice_autor[art.autor] = [art]
-                except Exception as e:
-                    print(f"⚠️ Error al cargar línea de la base de datos: {e}")
+        articulos = Storage.cargar()
+        for art in articulos:
+            self.tabla.insertar(art.hash, art)
+            self.indice_autor.agregar(art)
+            self.indice_titulo.agregar(art)
 
     def ejecutar_menu(self):
         while True:
@@ -75,25 +66,31 @@ class Main:
             key = HashUtils.hash_text(titulo + autor + str(anio))
 
         art.hash = key
-        if self.tabla.insertar(key, art):
+
+        if self.tabla.insertar(key, art): #se inserta ya en la tabla
             print("Artículo insertado correctamente.")
-                    # Índice por autor
-            if art.autor in self.indice_autor:
-                self.indice_autor[art.autor].append(art)
-            else:
-                self.indice_autor[art.autor] = [art]
-            with open("articulos_db.txt", "a", encoding="utf-8") as f:
-                f.write(json.dumps(art.to_dict()) + "\n")
+            # Agregar a índices
+            self.indice_autor.agregar(art)
+            self.indice_titulo.agregar(art)
+            Storage.guardar(art)
         else:
             print("El artículo ya existe en la tabla.")
 
     def buscar_articulo(self):
-        consulta = input("Ingrese el título (o parte del título) a buscar: ").strip().lower()
-        todos = self.tabla.listar_todos()
-        matches = [art for art in todos if consulta in (art.titulo or "").lower()]
+        print("Búsqueda de artículos")
+        tipo = input("Buscar por (1) Título o (2) Autor: ").strip()
+        consulta = input("Ingrese el texto de búsqueda: ").strip().lower()
+
+        if tipo == "1":
+            matches = self.indice_titulo.buscar(consulta)
+        elif tipo == "2":
+            matches = self.indice_autor.buscar(consulta)
+        else:
+            print("Opción inválida. Mostrando todos los artículos.")
+            matches = self.tabla.listar_todos()
 
         if not matches:
-            print("No se encontraron artículos con ese título.")
+            print("No se encontraron artículos.")
             return
 
         print(f"{len(matches)} artículo(s) encontrado(s):")
@@ -102,8 +99,7 @@ class Main:
 
     def eliminar_articulo(self):
         consulta = input("Ingrese el título (o parte del título) del artículo a eliminar: ").strip().lower()
-        todos = self.tabla.listar_todos()
-        matches = [art for art in todos if consulta in (art.titulo or "").lower()]
+        matches = self.indice_titulo.buscar(consulta)
 
         if not matches:
             print("No se encontraron artículos con ese título.")
@@ -113,8 +109,8 @@ class Main:
             print("Se encontraron múltiples artículos")
             for i, art in enumerate(matches):
                 print(f"{i + 1}. Hash: {art.hash} | Título: {art.titulo} | Autor(es): {art.autor} | Año: {art.anio} | Archivo: {art.archivo}")
-            seleccion = input("Ingrese el número del artículo a eliminar: ").strip()
-            art = matches[int(seleccion) - 1]
+            seleccion = int(input("Ingrese el número del artículo a eliminar: ").strip())
+            art = matches[seleccion-1]
         else:
             art = matches[0]
 
@@ -122,32 +118,21 @@ class Main:
             print("Artículo no exitente")
             return
         
-        if self.tabla.eliminar(art.hash):
-            print(f"Artículo '{art.titulo}' eliminado.")
         # Quitar del índice por autor
-        if art.autor in self.indice_autor:
-            self.indice_autor[art.autor] = [a for a in self.indice_autor[art.autor] if a.hash != art.hash]
-            if not self.indice_autor[art.autor]:
-                del self.indice_autor[art.autor]
+        if self.tabla.eliminar(art.hash):
+            print(f"Atículo '{art.titulo}' eliminado.")
+            self.indice_autor.eliminar(art)
+            self.indice_titulo.eliminar(art)
 
-            try:
-                with open("articulos_db.txt", r, encoding="utf-8") as f:
-                    lineas = f.readlines()
-                
-                with open("articulos_db.txt", "w", encoding="utf-8") as f:
-                    for linea in lineas:
-                        data = json.loads(linea.strip())
-                        if data.get("hash") != art.hash:
-                            f.write(json.dumps(data) + "\n")
-            except FileNotFoundError:
-                print("Archivo no encontrado. No se pudo actualizar.")
-            except Exception as e:
-                print(f"Error al actualizar la base de datos: {e}")
-
+            arts_restantes = self.tabla.listar_todos()
+            with open("articulos_db.txt", "w", encoding="utf-8") as f:
+                for a in arts_restantes:
+                    f.write(json.dumps(a.to_dict()) + "\n")
         else:
             print("Error al eliminar el artículo.")
 
-    def listar_articulos(self, articulos):
+    def listar_articulos(self):
+        articulos = self.tabla.listar_todos()
         print("Seleccione cómo listar los artículos:")
         print("1. Por título (alfabéticamente)")
         print("2. Por autor (alfabéticamente)")
