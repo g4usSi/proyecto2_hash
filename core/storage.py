@@ -1,6 +1,7 @@
 import os, json
 from core.articulos import articulo
 
+
 class Storage:
     File = "articulos_db.txt"
 
@@ -9,7 +10,7 @@ class Storage:
         articulos = []
         if not os.path.exists(Storage.File):
             return articulos
-        with open (Storage.File, "r", encoding="utf-8") as f:
+        with open(Storage.File, "r", encoding="utf-8") as f:
             for linea in f:
                 linea = linea.strip()
                 if not linea:
@@ -21,8 +22,28 @@ class Storage:
                 except Exception as e:
                     print(f"Error al cargar línea de la base de datos: {e}")
         return articulos
-    
+
     @staticmethod
     def guardar(art):
         with open(Storage.File, "a", encoding="utf-8") as f:
             f.write(json.dumps(art.to_dict()) + "\n")
+
+    # --- CRUD de archivos ---
+    @staticmethod
+    def leer_archivo(nombre_archivo):
+        if not os.path.exists(nombre_archivo):
+            raise FileNotFoundError("El archivo no existe")
+        with open(nombre_archivo, "r", encoding="utf-8") as f:
+            return f.read()
+
+    @staticmethod
+    def actualizar_archivo(nombre_archivo, nuevo_contenido):
+        if not os.path.exists(nombre_archivo):
+            raise FileNotFoundError("El archivo no existe")
+        with open(nombre_archivo, "w", encoding="utf-8") as f:
+            f.write(nuevo_contenido)
+
+    @staticmethod
+    def eliminar_archivo(nombre_archivo):
+        if os.path.exists(nombre_archivo):
+            os.remove(nombre_archivo)

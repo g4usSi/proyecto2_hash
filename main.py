@@ -6,6 +6,7 @@ from core.hash_utils import HashUtils
 from core.indices import IndiceAutor, IndiceTitulo
 from core.storage import Storage
 
+
 class Main:
     def __init__(self):
         self.tabla = HashTable()
@@ -28,7 +29,10 @@ class Main:
             print("2. Buscar artículo por título")
             print("3. Eliminar artículo por título")
             print("4. Listar todos los artículos")
-            print("5. Salir")
+            print("5. Ver archivo")
+            print("6. Editar archivo")
+            print("7. Eliminar archivo")
+            print("8. Salir")
 
             opcion = input("Seleccione una opción: ")
 
@@ -42,6 +46,12 @@ class Main:
                 case "4":
                     self.listar_articulos()
                 case "5":
+                    self.ver_archivo()
+                case "6":
+                    self.editar_archivo()
+                case "7":
+                    self.eliminar_archivo()
+                case "8":
                     print("Saliendo del programa...")
                     break
                 case _:
@@ -67,7 +77,7 @@ class Main:
 
         art.hash = key
 
-        if self.tabla.insertar(key, art): #se inserta ya en la tabla
+        if self.tabla.insertar(key, art):  # se inserta ya en la tabla
             print("Artículo insertado correctamente.")
             # Agregar a índices
             self.indice_autor.agregar(art)
@@ -95,7 +105,8 @@ class Main:
 
         print(f"{len(matches)} artículo(s) encontrado(s):")
         for art in matches:
-            print(f"Hash: {art.hash} | Título: {art.titulo} | Autor(es): {art.autor} | Año: {art.anio} | Archivo: {art.archivo}")
+            print(
+                f"Hash: {art.hash} | Título: {art.titulo} | Autor(es): {art.autor} | Año: {art.anio} | Archivo: {art.archivo}")
 
     def eliminar_articulo(self):
         consulta = input("Ingrese el título (o parte del título) del artículo a eliminar: ").strip().lower()
@@ -104,20 +115,21 @@ class Main:
         if not matches:
             print("No se encontraron artículos con ese título.")
             return
-        
+
         if len(matches) > 1:
             print("Se encontraron múltiples artículos")
             for i, art in enumerate(matches):
-                print(f"{i + 1}. Hash: {art.hash} | Título: {art.titulo} | Autor(es): {art.autor} | Año: {art.anio} | Archivo: {art.archivo}")
+                print(
+                    f"{i + 1}. Hash: {art.hash} | Título: {art.titulo} | Autor(es): {art.autor} | Año: {art.anio} | Archivo: {art.archivo}")
             seleccion = int(input("Ingrese el número del artículo a eliminar: ").strip())
-            art = matches[seleccion-1]
+            art = matches[seleccion - 1]
         else:
             art = matches[0]
 
         if art.hash is None:
             print("Artículo no exitente")
             return
-        
+
         # Quitar del índice por autor
         if self.tabla.eliminar(art.hash):
             print(f"Atículo '{art.titulo}' eliminado.")
@@ -148,7 +160,39 @@ class Main:
                 articulos.sort(key=lambda x: x.titulo if x.titulo else "")
 
         for i, art in enumerate(articulos, 1):
-            print(f"{i}. Hash: {art.hash} | Título: {art.titulo} | Autor(es): {art.autor} | Año: {art.anio} | Archivo: {art.archivo}")
+            print(
+                f"{i}. Hash: {art.hash} | Título: {art.titulo} | Autor(es): {art.autor} | Año: {art.anio} | Archivo: {art.archivo}")
+
+    # --- CRUD de archivos ---
+    def ver_archivo(self):
+        archivo = input("Nombre del archivo a ver: ").strip()
+        try:
+            contenido = Storage.leer_archivo(archivo)
+            print("\n--- Contenido ---")
+            print(contenido)
+        except Exception as e:
+            print(f"Error: {e}")
+
+    def editar_archivo(self):
+        archivo = input("Nombre del archivo a editar: ").strip()
+        try:
+            contenido = Storage.leer_archivo(archivo)
+            print("\n--- Contenido actual ---")
+            print(contenido)
+            nuevo = input("\nNuevo contenido:\n")
+            Storage.actualizar_archivo(archivo, nuevo)
+            print("Archivo actualizado.")
+        except Exception as e:
+            print(f"Error: {e}")
+
+    def eliminar_archivo(self):
+        archivo = input("Nombre del archivo a eliminar: ").strip()
+        try:
+            Storage.eliminar_archivo(archivo)
+            print("Archivo eliminado.")
+        except Exception as e:
+            print(f"Error: {e}")
+
 
 if __name__ == "__main__":
     Main()
