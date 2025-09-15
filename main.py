@@ -1,11 +1,6 @@
 import os
 import json
-from core.tabla_hash import HashTable
-from core.articulos import articulo
-from core.hash_utils import HashUtils
-from core.indices import IndiceAutor, IndiceTitulo
-from core.storage import Storage
-
+from core import HashTable, IndiceAutor, IndiceTitulo, Storage, articulo, HashUtils
 
 class Main:
     def __init__(self):
@@ -79,7 +74,7 @@ class Main:
 
         if self.tabla.insertar(key, art):  # se inserta ya en la tabla
             print("Artículo insertado correctamente.")
-            # Agregar a índices
+            # Agregar a indices
             self.indice_autor.agregar(art)
             self.indice_titulo.agregar(art)
             Storage.guardar(art)

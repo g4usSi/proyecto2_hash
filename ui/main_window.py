@@ -1,11 +1,13 @@
 import sys
-from PyQt5 import QtWidgets
-from core.storage import Storage
-from core.tabla_hash import HashTable
-from core.hash_utils import HashUtils
-from core.articulos import articulo
-from core.indices import IndiceAutor, IndiceTitulo
+import os
 
+# Agregar la raíz del proyecto al sys.path
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+#import temporalmente el path para desarrollo local solo para pruebas de UI
+
+import sys
+from PyQt5 import QtWidgets
+from core import HashTable, IndiceAutor, IndiceTitulo, Storage, articulo, HashUtils
 
 class MainWindow(QtWidgets.QMainWindow):
     def __init__(self):
