@@ -19,7 +19,7 @@ class Storage:
                     art = articulo.from_dict(data)
                     articulos.append(art)
                 except Exception as e:
-                    print(f"Error al cargar línea de la base de datos: {e}")
+                    print(f"Error al cargar linea de la base de datos: {e}")
         return articulos
 
     @staticmethod
@@ -72,7 +72,7 @@ class Storage:
 
     @staticmethod
     def obtener_info_archivo(nombre_archivo):
-        """Obtiene información del archivo (tamaño, fecha modificación, etc.)"""
+        """Obtiene informacion del archivo (tamaño, fecha modificacion, etc.)"""
         if not os.path.exists(nombre_archivo):
             raise FileNotFoundError(f"El archivo '{nombre_archivo}' no existe")
         
