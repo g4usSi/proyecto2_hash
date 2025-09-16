@@ -3,11 +3,182 @@ import os
 
 # Agregar la raíz del proyecto al sys.path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-#import temporalmente el path para desarrollo local solo para pruebas de UI
 
 import sys
-from PyQt5 import QtWidgets
+from PyQt5 import QtWidgets, QtCore, QtGui
 from core import HashTable, IndiceAutor, IndiceTitulo, Storage, articulo, HashUtils
+
+class EditorDialog(QtWidgets.QDialog):
+    """Ventana modal dedicada para editar archivos"""
+    
+    def __init__(self, parent, articulo_obj, modo='editar'):
+        super().__init__(parent)
+        self.articulo = articulo_obj
+        self.modo = modo
+        self.contenido_original = ""
+        self.setupUI()
+        self.cargar_contenido()
+    
+    def setupUI(self):
+        if self.modo == 'editar':
+            self.setWindowTitle(f"Editando: {self.articulo.titulo}")
+        else:
+            self.setWindowTitle(f"Visualizando: {self.articulo.titulo}")
+        
+        # Hacer la ventana modal (bloquea la ventana principal)
+        self.setModal(True)
+        self.setMinimumSize(800, 600)
+        
+        # Layout principal
+        layout = QtWidgets.QVBoxLayout(self)
+        
+        # Información del artículo
+        info_layout = QtWidgets.QHBoxLayout()
+        info_label = QtWidgets.QLabel(f"<b>Autor:</b> {self.articulo.autor} | <b>Año:</b> {self.articulo.anio}")
+        info_layout.addWidget(info_label)
+        info_layout.addStretch()
+        
+        # Contador de palabras/caracteres
+        self.stats_label = QtWidgets.QLabel()
+        info_layout.addWidget(self.stats_label)
+        layout.addLayout(info_layout)
+        
+        # Editor de texto
+        self.text_editor = QtWidgets.QTextEdit()
+        self.text_editor.setFont(QtGui.QFont("Consolas", 11))  # Fuente monoespaciada
+        
+        if self.modo == 'ver':
+            self.text_editor.setReadOnly(True)
+            self.text_editor.setStyleSheet("background-color: #f5f5f5;")
+        
+        # Conectar señal para actualizar estadísticas
+        self.text_editor.textChanged.connect(self.actualizar_estadisticas)
+        
+        layout.addWidget(self.text_editor)
+        
+        # Botones
+        buttons_layout = QtWidgets.QHBoxLayout()
+        
+        if self.modo == 'editar':
+            btn_guardar = QtWidgets.QPushButton("💾 Guardar")
+            btn_guardar.clicked.connect(self.guardar_archivo)
+            btn_guardar.setStyleSheet("""
+                QPushButton {
+                    background-color: #4CAF50;
+                    color: white;
+                    border: none;
+                    padding: 8px 16px;
+                    border-radius: 4px;
+                }
+                QPushButton:hover {
+                    background-color: #45a049;
+                }
+            """)
+            
+            btn_descartar = QtWidgets.QPushButton("❌ Descartar cambios")
+            btn_descartar.clicked.connect(self.descartar_cambios)
+            btn_descartar.setStyleSheet("""
+                QPushButton {
+                    background-color: #f44336;
+                    color: white;
+                    border: none;
+                    padding: 8px 16px;
+                    border-radius: 4px;
+                }
+                QPushButton:hover {
+                    background-color: #da190b;
+                }
+            """)
+            
+            buttons_layout.addWidget(btn_guardar)
+            buttons_layout.addWidget(btn_descartar)
+        
+        btn_cerrar = QtWidgets.QPushButton("🚪 Cerrar")
+        btn_cerrar.clicked.connect(self.reject)
+        btn_cerrar.setStyleSheet("""
+            QPushButton {
+                background-color: #6c757d;
+                color: white;
+                border: none;
+                padding: 8px 16px;
+                border-radius: 4px;
+            }
+            QPushButton:hover {
+                background-color: #5a6268;
+            }
+        """)
+        
+        buttons_layout.addStretch()
+        buttons_layout.addWidget(btn_cerrar)
+        
+        layout.addLayout(buttons_layout)
+    
+    def cargar_contenido(self):
+        try:
+            contenido = Storage.leer_archivo(self.articulo.archivo)
+            self.contenido_original = contenido
+            self.text_editor.setPlainText(contenido)
+            self.actualizar_estadisticas()
+        except Exception as e:
+            QtWidgets.QMessageBox.critical(self, "Error", f"No se pudo cargar el archivo: {str(e)}")
+            self.text_editor.setPlainText(f"Error al cargar: {str(e)}")
+    
+    def actualizar_estadisticas(self):
+        texto = self.text_editor.toPlainText()
+        caracteres = len(texto)
+        palabras = len(texto.split()) if texto.strip() else 0
+        lineas = len(texto.split('\n'))
+        
+        self.stats_label.setText(f"📊 {palabras} palabras, {caracteres} caracteres, {lineas} líneas")
+    
+    def guardar_archivo(self):
+        try:
+            contenido_actual = self.text_editor.toPlainText()
+            Storage.actualizar_archivo(self.articulo.archivo, contenido_actual)
+            
+            # Mostrar mensaje de éxito
+            QtWidgets.QMessageBox.information(self, "Éxito", "Archivo guardado correctamente.")
+            self.accept()  # Cierra el diálogo con resultado positivo
+            
+        except Exception as e:
+            QtWidgets.QMessageBox.critical(self, "Error", f"No se pudo guardar: {str(e)}")
+    
+    def descartar_cambios(self):
+        contenido_actual = self.text_editor.toPlainText()
+        
+        if contenido_actual != self.contenido_original:
+            respuesta = QtWidgets.QMessageBox.question(
+                self, 
+                "Descartar cambios", 
+                "¿Estás seguro de que quieres descartar todos los cambios?",
+                QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No
+            )
+            
+            if respuesta == QtWidgets.QMessageBox.Yes:
+                self.text_editor.setPlainText(self.contenido_original)
+        
+    def closeEvent(self, event):
+        """Interceptar el cierre de la ventana para preguntar por cambios no guardados"""
+        if self.modo == 'editar':
+            contenido_actual = self.text_editor.toPlainText()
+            
+            if contenido_actual != self.contenido_original:
+                respuesta = QtWidgets.QMessageBox.question(
+                    self,
+                    "Cambios sin guardar",
+                    "Tienes cambios sin guardar. ¿Quieres guardarlos antes de cerrar?",
+                    QtWidgets.QMessageBox.Save | QtWidgets.QMessageBox.Discard | QtWidgets.QMessageBox.Cancel
+                )
+                
+                if respuesta == QtWidgets.QMessageBox.Save:
+                    self.guardar_archivo()
+                    return  # guardar_archivo ya maneja el cierre
+                elif respuesta == QtWidgets.QMessageBox.Cancel:
+                    event.ignore()
+                    return
+        
+        event.accept()
+
 
 class MainWindow(QtWidgets.QMainWindow):
     def __init__(self):
@@ -28,8 +199,9 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # --- Barra lateral izquierda ---
         sidebar = QtWidgets.QVBoxLayout()
-        btn_nuevo = QtWidgets.QPushButton("Nuevo Artículo")
+        btn_nuevo = QtWidgets.QPushButton("📄 Nuevo Artículo")
         btn_nuevo.clicked.connect(self.nuevo_articulo)
+        btn_nuevo.setMinimumHeight(40)
         sidebar.addWidget(btn_nuevo)
         sidebar.addStretch()
 
@@ -41,13 +213,21 @@ class MainWindow(QtWidgets.QMainWindow):
         self.input_titulo = QtWidgets.QLineEdit()
         self.input_autor = QtWidgets.QLineEdit()
         self.input_anio = QtWidgets.QLineEdit()
-        btn_aplicar_busqueda = QtWidgets.QPushButton("Aplicar Búsqueda")
+        
+        btn_aplicar_busqueda = QtWidgets.QPushButton("🔍 Aplicar Búsqueda")
         btn_aplicar_busqueda.clicked.connect(self.aplicar_busqueda)
+        
+        btn_limpiar = QtWidgets.QPushButton("🧹 Limpiar")
+        btn_limpiar.clicked.connect(self.limpiar_busqueda)
 
         form_layout.addRow("Título:", self.input_titulo)
         form_layout.addRow("Autor(es):", self.input_autor)
         form_layout.addRow("Año de Publicación:", self.input_anio)
-        form_layout.addRow(btn_aplicar_busqueda)
+        
+        search_buttons_layout = QtWidgets.QHBoxLayout()
+        search_buttons_layout.addWidget(btn_aplicar_busqueda)
+        search_buttons_layout.addWidget(btn_limpiar)
+        form_layout.addRow(search_buttons_layout)
 
         # Resultados
         self.resultados_layout = QtWidgets.QVBoxLayout()
@@ -80,6 +260,12 @@ class MainWindow(QtWidgets.QMainWindow):
             self.indice_autor.agregar(art)
             self.indice_titulo.agregar(art)
 
+    def limpiar_busqueda(self):
+        self.input_titulo.clear()
+        self.input_autor.clear()
+        self.input_anio.clear()
+        self.mostrar_resultados(self.tabla.listar_todos())
+
     def aplicar_busqueda(self):
         titulo = self.input_titulo.text().strip().lower()
         autor = self.input_autor.text().strip().lower()
@@ -101,22 +287,39 @@ class MainWindow(QtWidgets.QMainWindow):
 
         for art in articulos:
             item_widget = QtWidgets.QWidget()
+            item_widget.setStyleSheet("""
+                QWidget {
+                    background-color: #f8f9fa;
+                    border: 1px solid #dee2e6;
+                    border-radius: 5px;
+                    margin: 2px;
+                    padding: 5px;
+                }
+            """)
+            
             item_layout = QtWidgets.QHBoxLayout(item_widget)
 
-            lbl = QtWidgets.QLabel(f"{art.titulo} - {art.autor} ({art.anio})")
-            btn_modificar = QtWidgets.QPushButton("Editar archivo")
-            btn_eliminar = QtWidgets.QPushButton("Eliminar archivo")
-            btn_ver = QtWidgets.QPushButton("Ver archivo")
+            lbl = QtWidgets.QLabel(f"<b>{art.titulo}</b><br><i>{art.autor}</i> ({art.anio})")
+            lbl.setWordWrap(True)
+            
+            btn_ver = QtWidgets.QPushButton("👁️ Ver")
+            btn_modificar = QtWidgets.QPushButton("✏️ Editar")
+            btn_eliminar = QtWidgets.QPushButton("🗑️ Eliminar")
 
+            # Estilos para botones
+            btn_ver.setStyleSheet("QPushButton { background-color: #17a2b8; color: white; border: none; padding: 5px 10px; border-radius: 3px; }")
+            btn_modificar.setStyleSheet("QPushButton { background-color: #ffc107; color: black; border: none; padding: 5px 10px; border-radius: 3px; }")
+            btn_eliminar.setStyleSheet("QPushButton { background-color: #dc3545; color: white; border: none; padding: 5px 10px; border-radius: 3px; }")
+
+            btn_ver.clicked.connect(lambda _, a=art: self.ver_archivo(a))
             btn_modificar.clicked.connect(lambda _, a=art: self.editar_archivo(a))
             btn_eliminar.clicked.connect(lambda _, a=art: self.eliminar_archivo(a))
-            btn_ver.clicked.connect(lambda _, a=art: self.ver_archivo(a))
 
-            item_layout.addWidget(lbl)
+            item_layout.addWidget(lbl, 3)
             item_layout.addStretch()
+            item_layout.addWidget(btn_ver)
             item_layout.addWidget(btn_modificar)
             item_layout.addWidget(btn_eliminar)
-            item_layout.addWidget(btn_ver)
 
             self.resultados_scroll_layout.addWidget(item_widget)
 
@@ -124,6 +327,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def nuevo_articulo(self):
         dialog = QtWidgets.QDialog(self)
+        dialog.setModal(True)  # Asegurar que sea modal
         dialog.setWindowTitle("Nuevo Artículo")
         layout = QtWidgets.QFormLayout(dialog)
 
@@ -165,42 +369,19 @@ class MainWindow(QtWidgets.QMainWindow):
         btn_guardar.clicked.connect(guardar)
         dialog.exec_()
 
-    # --- CRUD de archivos en UI ---
     def ver_archivo(self, art):
-        dlg = QtWidgets.QDialog(self)
-        dlg.setWindowTitle(f"Ver: {art.titulo}")
-        layout = QtWidgets.QVBoxLayout(dlg)
-        txt = QtWidgets.QTextEdit()
-        txt.setReadOnly(True)
-        try:
-            txt.setText(Storage.leer_archivo(art.archivo))
-        except Exception as e:
-            txt.setText(f"Error: {e}")
-        layout.addWidget(txt)
-        dlg.exec_()
+        """Abrir archivo en modo solo lectura"""
+        editor = EditorDialog(self, art, modo='ver')
+        editor.exec_()
 
     def editar_archivo(self, art):
-        dlg = QtWidgets.QDialog(self)
-        dlg.setWindowTitle(f"Editar: {art.titulo}")
-        layout = QtWidgets.QVBoxLayout(dlg)
-        txt = QtWidgets.QTextEdit()
-        try:
-            txt.setText(Storage.leer_archivo(art.archivo))
-        except Exception as e:
-            txt.setText(f"Error: {e}")
-        layout.addWidget(txt)
-        btn_guardar = QtWidgets.QPushButton("Guardar cambios")
-        layout.addWidget(btn_guardar)
-
-        def guardar():
-            try:
-                Storage.actualizar_archivo(art.archivo, txt.toPlainText())
-                dlg.accept()
-            except Exception as e:
-                QtWidgets.QMessageBox.warning(dlg, "Error", str(e))
-
-        btn_guardar.clicked.connect(guardar)
-        dlg.exec_()
+        """Abrir archivo en modo edición (modal, bloquea ventana principal)"""
+        editor = EditorDialog(self, art, modo='editar')
+        resultado = editor.exec_()
+        
+        # Si se guardaron cambios, actualizar la vista
+        if resultado == QtWidgets.QDialog.Accepted:
+            self.mostrar_resultados(self.tabla.listar_todos())
 
     def eliminar_archivo(self, art):
         confirm = QtWidgets.QMessageBox.question(
