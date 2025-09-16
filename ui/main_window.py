@@ -1,14 +1,13 @@
 import sys
 import os
 
-# Agregar la raíz del proyecto al sys.path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import sys
 from PyQt5 import QtWidgets, QtCore, QtGui
 from core import HashTable, IndiceAutor, IndiceTitulo, Storage, articulo, HashUtils
 
-class EditorDialog(QtWidgets.QDialog):
+class VentanaEditor(QtWidgets.QDialog):
     """Ventana modal dedicada para editar archivos"""
     
     def __init__(self, parent, articulo_obj, modo='editar'):
@@ -32,7 +31,7 @@ class EditorDialog(QtWidgets.QDialog):
         # Layout principal
         layout = QtWidgets.QVBoxLayout(self)
         
-        # Información del artículo
+        # Informacion del articulo
         info_layout = QtWidgets.QHBoxLayout()
         info_label = QtWidgets.QLabel(f"<b>Autor:</b> {self.articulo.autor} | <b>Año:</b> {self.articulo.anio}")
         info_layout.addWidget(info_label)
@@ -51,7 +50,7 @@ class EditorDialog(QtWidgets.QDialog):
             self.text_editor.setReadOnly(True)
             self.text_editor.setStyleSheet("background-color: #f5f5f5;")
         
-        # Conectar señal para actualizar estadísticas
+        # Conectar señal para actualizar estadisticas
         self.text_editor.textChanged.connect(self.actualizar_estadisticas)
         
         layout.addWidget(self.text_editor)
@@ -75,7 +74,7 @@ class EditorDialog(QtWidgets.QDialog):
                 }
             """)
             
-            btn_descartar = QtWidgets.QPushButton("❌ Descartar cambios")
+            btn_descartar = QtWidgets.QPushButton("Descartar cambios")
             btn_descartar.clicked.connect(self.descartar_cambios)
             btn_descartar.setStyleSheet("""
                 QPushButton {
@@ -93,7 +92,7 @@ class EditorDialog(QtWidgets.QDialog):
             buttons_layout.addWidget(btn_guardar)
             buttons_layout.addWidget(btn_descartar)
         
-        btn_cerrar = QtWidgets.QPushButton("🚪 Cerrar")
+        btn_cerrar = QtWidgets.QPushButton("Cerrar")
         btn_cerrar.clicked.connect(self.reject)
         btn_cerrar.setStyleSheet("""
             QPushButton {
@@ -129,16 +128,15 @@ class EditorDialog(QtWidgets.QDialog):
         palabras = len(texto.split()) if texto.strip() else 0
         lineas = len(texto.split('\n'))
         
-        self.stats_label.setText(f"📊 {palabras} palabras, {caracteres} caracteres, {lineas} líneas")
+        self.stats_label.setText(f"{palabras} palabras, {caracteres} caracteres, {lineas} lineas")
     
     def guardar_archivo(self):
         try:
             contenido_actual = self.text_editor.toPlainText()
             Storage.actualizar_archivo(self.articulo.archivo, contenido_actual)
             
-            # Mostrar mensaje de éxito
-            QtWidgets.QMessageBox.information(self, "Éxito", "Archivo guardado correctamente.")
-            self.accept()  # Cierra el diálogo con resultado positivo
+            QtWidgets.QMessageBox.information(self, "Exito", "Archivo guardado correctamente.")
+            self.accept()  # Cierra el dialogo con resultado positivo
             
         except Exception as e:
             QtWidgets.QMessageBox.critical(self, "Error", f"No se pudo guardar: {str(e)}")
@@ -150,7 +148,7 @@ class EditorDialog(QtWidgets.QDialog):
             respuesta = QtWidgets.QMessageBox.question(
                 self, 
                 "Descartar cambios", 
-                "¿Estás seguro de que quieres descartar todos los cambios?",
+                "Estas seguro de que quieres descartar todos los cambios?",
                 QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No
             )
             
@@ -183,10 +181,10 @@ class EditorDialog(QtWidgets.QDialog):
 class MainWindow(QtWidgets.QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("Gestor de Artículos Científicos")
+        self.setWindowTitle("Gestor de Articulos Cientificos")
         self.setGeometry(100, 100, 1000, 600)
 
-        # --- Tabla hash e índices ---
+        # --- Tabla hash e indices ---
         self.tabla = HashTable()
         self.indice_autor = IndiceAutor()
         self.indice_titulo = IndiceTitulo()
@@ -199,7 +197,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # --- Barra lateral izquierda ---
         sidebar = QtWidgets.QVBoxLayout()
-        btn_nuevo = QtWidgets.QPushButton("📄 Nuevo Artículo")
+        btn_nuevo = QtWidgets.QPushButton(" Nuevo Articulo")
         btn_nuevo.clicked.connect(self.nuevo_articulo)
         btn_nuevo.setMinimumHeight(40)
         sidebar.addWidget(btn_nuevo)
@@ -208,21 +206,21 @@ class MainWindow(QtWidgets.QMainWindow):
         # --- Contenido principal ---
         content_layout = QtWidgets.QVBoxLayout()
 
-        # Formulario búsqueda
+        # Formulario busqueda
         form_layout = QtWidgets.QFormLayout()
         self.input_titulo = QtWidgets.QLineEdit()
         self.input_autor = QtWidgets.QLineEdit()
         self.input_anio = QtWidgets.QLineEdit()
         
-        btn_aplicar_busqueda = QtWidgets.QPushButton("🔍 Aplicar Búsqueda")
+        btn_aplicar_busqueda = QtWidgets.QPushButton(" Aplicar Busqueda")
         btn_aplicar_busqueda.clicked.connect(self.aplicar_busqueda)
         
-        btn_limpiar = QtWidgets.QPushButton("🧹 Limpiar")
+        btn_limpiar = QtWidgets.QPushButton("Limpiar")
         btn_limpiar.clicked.connect(self.limpiar_busqueda)
 
-        form_layout.addRow("Título:", self.input_titulo)
+        form_layout.addRow("Titulo:", self.input_titulo)
         form_layout.addRow("Autor(es):", self.input_autor)
-        form_layout.addRow("Año de Publicación:", self.input_anio)
+        form_layout.addRow("Año de Publicacion:", self.input_anio)
         
         search_buttons_layout = QtWidgets.QHBoxLayout()
         search_buttons_layout.addWidget(btn_aplicar_busqueda)
@@ -231,7 +229,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # Resultados
         self.resultados_layout = QtWidgets.QVBoxLayout()
-        resultados_label = QtWidgets.QLabel("Resultados de la búsqueda:")
+        resultados_label = QtWidgets.QLabel("Resultados de la busqueda:")
         self.resultados_layout.addWidget(resultados_label)
 
         # Scroll con coincidencias
@@ -302,9 +300,9 @@ class MainWindow(QtWidgets.QMainWindow):
             lbl = QtWidgets.QLabel(f"<b>{art.titulo}</b><br><i>{art.autor}</i> ({art.anio})")
             lbl.setWordWrap(True)
             
-            btn_ver = QtWidgets.QPushButton("👁️ Ver")
-            btn_modificar = QtWidgets.QPushButton("✏️ Editar")
-            btn_eliminar = QtWidgets.QPushButton("🗑️ Eliminar")
+            btn_ver = QtWidgets.QPushButton("Ver")
+            btn_modificar = QtWidgets.QPushButton("Editar")
+            btn_eliminar = QtWidgets.QPushButton("Eliminar")
 
             # Estilos para botones
             btn_ver.setStyleSheet("QPushButton { background-color: #17a2b8; color: white; border: none; padding: 5px 10px; border-radius: 3px; }")
@@ -328,7 +326,7 @@ class MainWindow(QtWidgets.QMainWindow):
     def nuevo_articulo(self):
         dialog = QtWidgets.QDialog(self)
         dialog.setModal(True)  # Asegurar que sea modal
-        dialog.setWindowTitle("Nuevo Artículo")
+        dialog.setWindowTitle("Nuevo Articulo")
         layout = QtWidgets.QFormLayout(dialog)
 
         input_titulo = QtWidgets.QLineEdit()
@@ -336,7 +334,7 @@ class MainWindow(QtWidgets.QMainWindow):
         input_anio = QtWidgets.QLineEdit()
         input_archivo = QtWidgets.QLineEdit()
 
-        layout.addRow("Título:", input_titulo)
+        layout.addRow("Titulo:", input_titulo)
         layout.addRow("Autor(es):", input_autor)
         layout.addRow("Año:", input_anio)
         layout.addRow("Archivo:", input_archivo)
@@ -364,19 +362,19 @@ class MainWindow(QtWidgets.QMainWindow):
                 self.mostrar_resultados(self.tabla.listar_todos())
                 dialog.accept()
             else:
-                QtWidgets.QMessageBox.warning(dialog, "Error", "El artículo ya existe.")
+                QtWidgets.QMessageBox.warning(dialog, "Error", "El articulo ya existe.")
 
         btn_guardar.clicked.connect(guardar)
         dialog.exec_()
 
     def ver_archivo(self, art):
         """Abrir archivo en modo solo lectura"""
-        editor = EditorDialog(self, art, modo='ver')
+        editor = VentanaEditor(self, art, modo='ver')
         editor.exec_()
 
     def editar_archivo(self, art):
-        """Abrir archivo en modo edición (modal, bloquea ventana principal)"""
-        editor = EditorDialog(self, art, modo='editar')
+        """Abrir archivo en modo edicion (modal, bloquea ventana principal)"""
+        editor = VentanaEditor(self, art, modo='editar')
         resultado = editor.exec_()
         
         # Si se guardaron cambios, actualizar la vista
@@ -395,7 +393,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 self.indice_autor.eliminar(art)
                 self.indice_titulo.eliminar(art)
                 self.mostrar_resultados(self.tabla.listar_todos())
-                QtWidgets.QMessageBox.information(self, "Éxito", "Archivo eliminado.")
+                QtWidgets.QMessageBox.information(self, "Exito", "Archivo eliminado.")
             except Exception as e:
                 QtWidgets.QMessageBox.warning(self, "Error", str(e))
 
