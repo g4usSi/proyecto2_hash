@@ -1,6 +1,7 @@
 import os, json
 from core.articulos import articulo
 
+
 class Storage:
     File = "articulos_db.txt"
 
@@ -19,7 +20,7 @@ class Storage:
                     art = articulo.from_dict(data)
                     articulos.append(art)
                 except Exception as e:
-                    print(f"Error al cargar linea de la base de datos: {e}")
+                    print(f"Error al cargar línea de la base de datos: {e}")
         return articulos
 
     @staticmethod
@@ -66,13 +67,46 @@ class Storage:
             raise FileNotFoundError(f"El archivo '{nombre_archivo}' no existe")
 
     @staticmethod
+    def eliminar_articulo_de_db(articulo_a_eliminar):
+        """Elimina un artículo específico de la base de datos"""
+        if not os.path.exists(Storage.File):
+            return False
+        
+        # Leer todos los artículos actuales
+        articulos_restantes = []
+        with open(Storage.File, "r", encoding="utf-8") as f:
+            for linea in f:
+                linea = linea.strip()
+                if not linea:
+                    continue
+                try:
+                    data = json.loads(linea)
+                    # Solo mantener los artículos que NO son el que queremos eliminar
+                    if (data.get('titulo') != articulo_a_eliminar.titulo or 
+                        data.get('autor') != articulo_a_eliminar.autor or 
+                        data.get('anio') != articulo_a_eliminar.anio or
+                        data.get('archivo') != articulo_a_eliminar.archivo):
+                        articulos_restantes.append(linea)
+                except Exception as e:
+                    print(f"Error al procesar línea durante eliminación: {e}")
+                    # Mantener líneas que no se pueden procesar (por seguridad)
+                    articulos_restantes.append(linea)
+        
+        # Reescribir el archivo con solo los artículos restantes
+        with open(Storage.File, "w", encoding="utf-8") as f:
+            for linea in articulos_restantes:
+                f.write(linea + "\n")
+        
+        return True
+
+    @staticmethod
     def archivo_existe(nombre_archivo):
         """Verifica si un archivo existe"""
         return os.path.exists(nombre_archivo)
 
     @staticmethod
     def obtener_info_archivo(nombre_archivo):
-        """Obtiene informacion del archivo (tamaño, fecha modificacion, etc.)"""
+        """Obtiene información del archivo (tamaño, fecha modificación, etc.)"""
         if not os.path.exists(nombre_archivo):
             raise FileNotFoundError(f"El archivo '{nombre_archivo}' no existe")
         

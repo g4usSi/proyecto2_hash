@@ -3,17 +3,6 @@ import os
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-import sys
-from PyQt5 import QtWidgets, QtCore, QtGui
-from core import HashTable, IndiceAutor, IndiceTitulo, Storage, articulo, HashUtils
-
-import sys
-import os
-
-# Agregar la raiz del proyecto al sys.path
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
-import sys
 from PyQt5 import QtWidgets, QtCore, QtGui
 from core import HashTable, IndiceAutor, IndiceTitulo, Storage, articulo, HashUtils
 
@@ -262,11 +251,106 @@ class MainWindow(QtWidgets.QMainWindow):
         self.mostrar_resultados(self.tabla.listar_todos())
 
     def cargar_base_datos(self):
+        """Carga la base de datos y valida que los archivos existan"""
         articulos = Storage.cargar()
+        articulos_validos = []
+        articulos_huerfanos = []  # Artículos sin archivo físico
+        
         for art in articulos:
-            self.tabla.insertar(art.hash, art)
-            self.indice_autor.agregar(art)
-            self.indice_titulo.agregar(art)
+            if Storage.archivo_existe(art.archivo):
+                # Archivo existe, agregarlo normalmente
+                self.tabla.insertar(art.hash, art)
+                self.indice_autor.agregar(art)
+                self.indice_titulo.agregar(art)
+                articulos_validos.append(art)
+            else:
+                # Archivo no existe, marcarlo como huérfano
+                articulos_huerfanos.append(art)
+                print(f"⚠️ Archivo huérfano encontrado: {art.archivo} (Artículo: {art.titulo})")
+        
+        # Si hay artículos huérfanos, preguntar qué hacer
+        if articulos_huerfanos:
+            self.manejar_articulos_huerfanos(articulos_huerfanos)
+
+    def manejar_articulos_huerfanos(self, articulos_huerfanos):
+        """Maneja artículos que existen en la DB pero no tienen archivo físico"""
+        mensaje = f"⚠️ Se encontraron {len(articulos_huerfanos)} artículo(s) en la base de datos sin archivo físico:\n\n"
+        
+        for art in articulos_huerfanos[:5]:  # Mostrar máximo 5
+            mensaje += f"• {art.titulo} - {art.autor} ({art.archivo})\n"
+        
+        if len(articulos_huerfanos) > 5:
+            mensaje += f"... y {len(articulos_huerfanos) - 5} más\n"
+        
+        mensaje += "\n¿Qué deseas hacer?"
+        
+        # Crear diálogo personalizado
+        dialog = QtWidgets.QMessageBox(self)
+        dialog.setWindowTitle("Archivos Huérfanos Detectados")
+        dialog.setText(mensaje)
+        
+        btn_limpiar = dialog.addButton("🧹 Limpiar base de datos", QtWidgets.QMessageBox.YesRole)
+        btn_ignorar = dialog.addButton("👁️ Mantener registros", QtWidgets.QMessageBox.NoRole)
+        btn_ver_detalle = dialog.addButton("📋 Ver detalles", QtWidgets.QMessageBox.HelpRole)
+        
+        dialog.setDefaultButton(btn_ver_detalle)
+        dialog.exec_()
+        
+        if dialog.clickedButton() == btn_limpiar:
+            # Eliminar artículos huérfanos de la base de datos
+            for art in articulos_huerfanos:
+                Storage.eliminar_articulo_de_db(art)
+            
+            QtWidgets.QMessageBox.information(
+                self, "Limpieza Completada", 
+                f"Se eliminaron {len(articulos_huerfanos)} registro(s) huérfano(s) de la base de datos."
+            )
+        
+        elif dialog.clickedButton() == btn_ver_detalle:
+            # Mostrar detalles de todos los artículos huérfanos
+            self.mostrar_detalle_huerfanos(articulos_huerfanos)
+
+    def mostrar_detalle_huerfanos(self, articulos_huerfanos):
+        """Muestra una ventana con el detalle de todos los artículos huérfanos"""
+        dialog = QtWidgets.QDialog(self)
+        dialog.setWindowTitle("Detalle de Archivos Huérfanos")
+        dialog.setModal(True)
+        dialog.resize(600, 400)
+        
+        layout = QtWidgets.QVBoxLayout(dialog)
+        
+        # Lista de artículos huérfanos
+        lista = QtWidgets.QListWidget()
+        for art in articulos_huerfanos:
+            item_text = f"📄 {art.titulo}\n👤 {art.autor} ({art.anio})\n📁 {art.archivo}\n"
+            item = QtWidgets.QListWidgetItem(item_text)
+            lista.addItem(item)
+        
+        layout.addWidget(QtWidgets.QLabel(f"Se encontraron {len(articulos_huerfanos)} artículos sin archivo físico:"))
+        layout.addWidget(lista)
+        
+        # Botones
+        buttons_layout = QtWidgets.QHBoxLayout()
+        btn_limpiar_seleccionados = QtWidgets.QPushButton("🧹 Limpiar seleccionados")
+        btn_limpiar_todos = QtWidgets.QPushButton("🧹 Limpiar todos")
+        btn_cerrar = QtWidgets.QPushButton("❌ Cerrar")
+        
+        buttons_layout.addWidget(btn_limpiar_seleccionados)
+        buttons_layout.addWidget(btn_limpiar_todos)
+        buttons_layout.addStretch()
+        buttons_layout.addWidget(btn_cerrar)
+        layout.addLayout(buttons_layout)
+        
+        def limpiar_todos():
+            for art in articulos_huerfanos:
+                Storage.eliminar_articulo_de_db(art)
+            QtWidgets.QMessageBox.information(dialog, "Limpieza Completada", f"Se eliminaron {len(articulos_huerfanos)} registros.")
+            dialog.accept()
+        
+        btn_limpiar_todos.clicked.connect(limpiar_todos)
+        btn_cerrar.clicked.connect(dialog.reject)
+        
+        dialog.exec_()
 
     def limpiar_busqueda(self):
         self.input_titulo.clear()
@@ -278,21 +362,81 @@ class MainWindow(QtWidgets.QMainWindow):
         titulo = self.input_titulo.text().strip().lower()
         autor = self.input_autor.text().strip().lower()
 
+        matches = []
+
         if titulo:
-            matches = self.indice_titulo.buscar(titulo)
-        elif autor:
-            matches = self.indice_autor.buscar(autor)
-        else:
+            res = self.indice_titulo.buscar(titulo)
+            # Asegurar que siempre sea lista
+            if res:
+                matches = res if isinstance(res, list) else [res]
+
+        if autor:
+            res = self.indice_autor.buscar(autor)
+            if res:
+                # unir con matches existentes sin duplicar
+                res_list = res if isinstance(res, list) else [res]
+                matches.extend(r for r in res_list if r not in matches)
+
+        if not titulo and not autor:
             matches = self.tabla.listar_todos()
 
         self.mostrar_resultados(matches)
+        self.input_titulo.clear()
+        self.input_autor.clear()
+        self.input_anio.clear()
 
     def mostrar_resultados(self, articulos):
-        for i in reversed(range(self.resultados_scroll_layout.count())):
-            widget = self.resultados_scroll_layout.itemAt(i).widget()
-            if widget:
-                widget.setParent(None)
+        # MÉTODO CORREGIDO para limpiar resultados anteriores
+        def limpiar_layout(layout):
+            """Limpia completamente todos los widgets de un layout"""
+            while layout.count():
+                child = layout.takeAt(0)
+                if child.widget():
+                    child.widget().deleteLater()
+                elif child.layout():
+                    limpiar_layout(child.layout())
+        
+        # Limpiar todos los widgets anteriores
+        limpiar_layout(self.resultados_scroll_layout)
 
+        # Verificar si hay artículos
+        if not articulos:
+            # Mostrar mensaje de "no hay coincidencias"
+            no_results_widget = QtWidgets.QWidget()
+            no_results_widget.setStyleSheet("""
+                QWidget {
+                    background-color: #f8f9fa;
+                    border: 2px dashed #dee2e6;
+                    border-radius: 10px;
+                    margin: 20px;
+                    padding: 40px;
+                }
+            """)
+            
+            no_results_layout = QtWidgets.QVBoxLayout(no_results_widget)
+            
+            # Ícono y mensaje
+            icon_label = QtWidgets.QLabel("🔍")
+            icon_label.setAlignment(QtCore.Qt.AlignCenter)
+            icon_label.setStyleSheet("font-size: 48px; color: #6c757d; margin-bottom: 10px;")
+            
+            message_label = QtWidgets.QLabel("No se encontraron coincidencias")
+            message_label.setAlignment(QtCore.Qt.AlignCenter)
+            message_label.setStyleSheet("font-size: 18px; color: #6c757d; font-weight: bold; margin-bottom: 5px;")
+            
+            suggestion_label = QtWidgets.QLabel("Intenta con otros términos de búsqueda o limpia los filtros")
+            suggestion_label.setAlignment(QtCore.Qt.AlignCenter)
+            suggestion_label.setStyleSheet("font-size: 14px; color: #adb5bd;")
+            
+            no_results_layout.addWidget(icon_label)
+            no_results_layout.addWidget(message_label)
+            no_results_layout.addWidget(suggestion_label)
+            
+            self.resultados_scroll_layout.addWidget(no_results_widget)
+            self.resultados_scroll_layout.addStretch()
+            return
+
+        # Mostrar artículos encontrados
         for art in articulos:
             item_widget = QtWidgets.QWidget()
             item_widget.setStyleSheet("""
@@ -335,7 +479,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def nuevo_articulo(self):
         dialog = QtWidgets.QDialog(self)
-        dialog.setModal(True)  # Asegurar que sea modal
+        dialog.setModal(True)
         dialog.setWindowTitle("Nuevo Articulo")
         dialog.setMinimumSize(500, 400)
         layout = QtWidgets.QVBoxLayout(dialog)
@@ -456,12 +600,10 @@ class MainWindow(QtWidgets.QMainWindow):
         dialog.exec_()
 
     def ver_archivo(self, art):
-        
         editor = VentanaEditor(self, art, modo='ver')
         editor.exec_()
 
     def editar_archivo(self, art):
-        
         editor = VentanaEditor(self, art, modo='editar')
         resultado = editor.exec_()
         
@@ -471,246 +613,67 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def eliminar_archivo(self, art):
         confirm = QtWidgets.QMessageBox.question(
-            self, "Confirmar", f"¿Eliminar el archivo '{art.archivo}'?",
+            self, "Confirmar Eliminación", 
+            f"¿Estás seguro de eliminar permanentemente?\n\n"
+            f"📄 Artículo: {art.titulo}\n"
+            f"👤 Autor: {art.autor}\n"
+            f"📁 Archivo: {art.archivo}\n\n"
+            f"⚠️ Esta acción no se puede deshacer.",
             QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No
         )
+        
         if confirm == QtWidgets.QMessageBox.Yes:
             try:
-                Storage.eliminar_archivo(art.archivo)
+                # 1. Eliminar el archivo físico
+                if Storage.archivo_existe(art.archivo):
+                    Storage.eliminar_archivo(art.archivo)
+                    archivo_eliminado = True
+                else:
+                    archivo_eliminado = False
+                    print(f"Advertencia: El archivo físico '{art.archivo}' no existe")
+                
+                # 2. Eliminar de las estructuras de datos en memoria
                 self.tabla.eliminar(art.hash)
                 self.indice_autor.eliminar(art)
                 self.indice_titulo.eliminar(art)
+                
+                # 3. Eliminar de la base de datos persistente
+                Storage.eliminar_articulo_de_db(art)
+                
+                # 4. Actualizar la vista
                 self.mostrar_resultados(self.tabla.listar_todos())
-                QtWidgets.QMessageBox.information(self, "Exito", "Archivo eliminado.")
+                
+                # 5. Mostrar mensaje de confirmación
+                if archivo_eliminado:
+                    mensaje = f"✅ Artículo eliminado completamente:\n- Archivo físico eliminado\n- Metadatos eliminados de la base de datos"
+                else:
+                    mensaje = f"⚠️ Artículo eliminado de la base de datos:\n- El archivo físico no existía\n- Metadatos eliminados correctamente"
+                
+                QtWidgets.QMessageBox.information(self, "Eliminación Exitosa", mensaje)
+                
             except Exception as e:
-                QtWidgets.QMessageBox.warning(self, "Error", str(e))
+                # Si algo sale mal, intentar recargar desde la base de datos
+                QtWidgets.QMessageBox.critical(self, "Error", f"Error durante la eliminación: {str(e)}")
+                
+                # Intentar recuperar el estado desde la base de datos
+                try:
+                    self.recargar_base_datos()
+                    QtWidgets.QMessageBox.information(self, "Recuperación", "Se ha recargado la base de datos para mantener consistencia.")
+                except Exception as e2:
+                    QtWidgets.QMessageBox.critical(self, "Error Crítico", f"Error al recargar la base de datos: {str(e2)}")
 
-
-if __name__ == "__main__":
-    app = QtWidgets.QApplication(sys.argv)
-    window = MainWindow()
-    window.show()
-    sys.exit(app.exec_())
-
-class MainWindow(QtWidgets.QMainWindow):
-    def __init__(self):
-        super().__init__()
-        self.setWindowTitle("Gestor de Articulos Cientificos")
-        self.setGeometry(100, 100, 1000, 600)
-
-        # --- Tabla hash e indices ---
+    def recargar_base_datos(self):
+        """Método auxiliar para recargar completamente la base de datos"""
+        # Limpiar estructuras actuales
         self.tabla = HashTable()
         self.indice_autor = IndiceAutor()
         self.indice_titulo = IndiceTitulo()
+        
+        # Recargar desde archivo
         self.cargar_base_datos()
-
-        # --- Layout principal ---
-        central_widget = QtWidgets.QWidget()
-        self.setCentralWidget(central_widget)
-        main_layout = QtWidgets.QHBoxLayout(central_widget)
-
-        # --- Barra lateral izquierda ---
-        sidebar = QtWidgets.QVBoxLayout()
-        btn_nuevo = QtWidgets.QPushButton(" Nuevo Articulo")
-        btn_nuevo.clicked.connect(self.nuevo_articulo)
-        btn_nuevo.setMinimumHeight(40)
-        sidebar.addWidget(btn_nuevo)
-        sidebar.addStretch()
-
-        # --- Contenido principal ---
-        content_layout = QtWidgets.QVBoxLayout()
-
-        # Formulario busqueda
-        form_layout = QtWidgets.QFormLayout()
-        self.input_titulo = QtWidgets.QLineEdit()
-        self.input_autor = QtWidgets.QLineEdit()
-        self.input_anio = QtWidgets.QLineEdit()
         
-        btn_aplicar_busqueda = QtWidgets.QPushButton(" Aplicar Busqueda")
-        btn_aplicar_busqueda.clicked.connect(self.aplicar_busqueda)
-        
-        btn_limpiar = QtWidgets.QPushButton("Limpiar")
-        btn_limpiar.clicked.connect(self.limpiar_busqueda)
-
-        form_layout.addRow("Titulo:", self.input_titulo)
-        form_layout.addRow("Autor(es):", self.input_autor)
-        form_layout.addRow("Año de Publicacion:", self.input_anio)
-        
-        search_buttons_layout = QtWidgets.QHBoxLayout()
-        search_buttons_layout.addWidget(btn_aplicar_busqueda)
-        search_buttons_layout.addWidget(btn_limpiar)
-        form_layout.addRow(search_buttons_layout)
-
-        # Resultados
-        self.resultados_layout = QtWidgets.QVBoxLayout()
-        resultados_label = QtWidgets.QLabel("Resultados de la busqueda:")
-        self.resultados_layout.addWidget(resultados_label)
-
-        # Scroll con coincidencias
-        self.scroll_area = QtWidgets.QScrollArea()
-        self.scroll_area.setWidgetResizable(True)
-        self.resultados_widget = QtWidgets.QWidget()
-        self.resultados_scroll_layout = QtWidgets.QVBoxLayout(self.resultados_widget)
-        self.scroll_area.setWidget(self.resultados_widget)
-        self.resultados_layout.addWidget(self.scroll_area)
-
-        # Agregar formulario y resultados al contenido principal
-        content_layout.addLayout(form_layout)
-        content_layout.addLayout(self.resultados_layout)
-
-        # Agregar sidebar y contenido al layout principal
-        main_layout.addLayout(sidebar, 1)
-        main_layout.addLayout(content_layout, 4)
-
-        # Mostrar todos al inicio
+        # Actualizar vista
         self.mostrar_resultados(self.tabla.listar_todos())
-
-    def cargar_base_datos(self):
-        articulos = Storage.cargar()
-        for art in articulos:
-            self.tabla.insertar(art.hash, art)
-            self.indice_autor.agregar(art)
-            self.indice_titulo.agregar(art)
-
-    def limpiar_busqueda(self):
-        self.input_titulo.clear()
-        self.input_autor.clear()
-        self.input_anio.clear()
-        self.mostrar_resultados(self.tabla.listar_todos())
-
-    def aplicar_busqueda(self):
-        titulo = self.input_titulo.text().strip().lower()
-        autor = self.input_autor.text().strip().lower()
-
-        if titulo:
-            matches = self.indice_titulo.buscar(titulo)
-        elif autor:
-            matches = self.indice_autor.buscar(autor)
-        else:
-            matches = self.tabla.listar_todos()
-
-        self.mostrar_resultados(matches)
-
-    def mostrar_resultados(self, articulos):
-        for i in reversed(range(self.resultados_scroll_layout.count())):
-            widget = self.resultados_scroll_layout.itemAt(i).widget()
-            if widget:
-                widget.setParent(None)
-
-        for art in articulos:
-            item_widget = QtWidgets.QWidget()
-            item_widget.setStyleSheet("""
-                QWidget {
-                    background-color: #f8f9fa;
-                    border: 1px solid #dee2e6;
-                    border-radius: 5px;
-                    margin: 2px;
-                    padding: 5px;
-                }
-            """)
-            
-            item_layout = QtWidgets.QHBoxLayout(item_widget)
-
-            lbl = QtWidgets.QLabel(f"<b>{art.titulo}</b><br><i>{art.autor}</i> ({art.anio})")
-            lbl.setWordWrap(True)
-            
-            btn_ver = QtWidgets.QPushButton("Ver")
-            btn_modificar = QtWidgets.QPushButton("Editar")
-            btn_eliminar = QtWidgets.QPushButton("Eliminar")
-
-            # Estilos para botones
-            btn_ver.setStyleSheet("QPushButton { background-color: #17a2b8; color: white; border: none; padding: 5px 10px; border-radius: 3px; }")
-            btn_modificar.setStyleSheet("QPushButton { background-color: #ffc107; color: black; border: none; padding: 5px 10px; border-radius: 3px; }")
-            btn_eliminar.setStyleSheet("QPushButton { background-color: #dc3545; color: white; border: none; padding: 5px 10px; border-radius: 3px; }")
-
-            btn_ver.clicked.connect(lambda _, a=art: self.ver_archivo(a))
-            btn_modificar.clicked.connect(lambda _, a=art: self.editar_archivo(a))
-            btn_eliminar.clicked.connect(lambda _, a=art: self.eliminar_archivo(a))
-
-            item_layout.addWidget(lbl, 3)
-            item_layout.addStretch()
-            item_layout.addWidget(btn_ver)
-            item_layout.addWidget(btn_modificar)
-            item_layout.addWidget(btn_eliminar)
-
-            self.resultados_scroll_layout.addWidget(item_widget)
-
-        self.resultados_scroll_layout.addStretch()
-
-    def nuevo_articulo(self):
-        dialog = QtWidgets.QDialog(self)
-        dialog.setModal(True)  # Asegurar que sea modal
-        dialog.setWindowTitle("Nuevo Articulo")
-        layout = QtWidgets.QFormLayout(dialog)
-
-        input_titulo = QtWidgets.QLineEdit()
-        input_autor = QtWidgets.QLineEdit()
-        input_anio = QtWidgets.QLineEdit()
-        input_archivo = QtWidgets.QLineEdit()
-
-        layout.addRow("Titulo:", input_titulo)
-        layout.addRow("Autor(es):", input_autor)
-        layout.addRow("Año:", input_anio)
-        layout.addRow("Archivo:", input_archivo)
-
-        btn_guardar = QtWidgets.QPushButton("Guardar")
-        layout.addRow(btn_guardar)
-
-        def guardar():
-            titulo = input_titulo.text().strip()
-            autor = input_autor.text().strip()
-            anio = input_anio.text().strip()
-            archivo = input_archivo.text().strip()
-
-            if not (titulo and autor and anio and archivo):
-                QtWidgets.QMessageBox.warning(dialog, "Error", "Todos los campos son obligatorios.")
-                return
-
-            art = articulo(titulo, autor, anio, archivo)
-            art.hash = HashUtils.hash_text(titulo + autor + str(anio))
-
-            if self.tabla.insertar(art.hash, art):
-                self.indice_autor.agregar(art)
-                self.indice_titulo.agregar(art)
-                Storage.guardar_articulo(art)
-                self.mostrar_resultados(self.tabla.listar_todos())
-                dialog.accept()
-            else:
-                QtWidgets.QMessageBox.warning(dialog, "Error", "El articulo ya existe.")
-
-        btn_guardar.clicked.connect(guardar)
-        dialog.exec_()
-
-    def ver_archivo(self, art):
-        """Abrir archivo en modo solo lectura"""
-        editor = VentanaEditor(self, art, modo='ver')
-        editor.exec_()
-
-    def editar_archivo(self, art):
-        """Abrir archivo en modo edicion (modal, bloquea ventana principal)"""
-        editor = VentanaEditor(self, art, modo='editar')
-        resultado = editor.exec_()
-        
-        # Si se guardaron cambios, actualizar la vista
-        if resultado == QtWidgets.QDialog.Accepted:
-            self.mostrar_resultados(self.tabla.listar_todos())
-
-    def eliminar_archivo(self, art):
-        confirm = QtWidgets.QMessageBox.question(
-            self, "Confirmar", f"¿Eliminar el archivo '{art.archivo}'?",
-            QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No
-        )
-        if confirm == QtWidgets.QMessageBox.Yes:
-            try:
-                Storage.eliminar_archivo(art.archivo)
-                self.tabla.eliminar(art.hash)
-                self.indice_autor.eliminar(art)
-                self.indice_titulo.eliminar(art)
-                self.mostrar_resultados(self.tabla.listar_todos())
-                QtWidgets.QMessageBox.information(self, "Exito", "Archivo eliminado.")
-            except Exception as e:
-                QtWidgets.QMessageBox.warning(self, "Error", str(e))
-
 
 if __name__ == "__main__":
     app = QtWidgets.QApplication(sys.argv)
