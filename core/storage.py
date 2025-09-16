@@ -24,7 +24,7 @@ class Storage:
         return articulos
 
     @staticmethod
-    def guardar(art):
+    def guardar_articulo(art):
         with open(Storage.File, "a", encoding="utf-8") as f:
             f.write(json.dumps(art.to_dict()) + "\n")
 

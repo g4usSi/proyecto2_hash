@@ -1,0 +1,1 @@
+{"titulo": "Ciencia de datos", "autor": "Carlos Lopez", "anio": "2019", "archivo": "ciencia_de_Datos_CL.txt", "hash": "3383734907", "extension": "txt"}

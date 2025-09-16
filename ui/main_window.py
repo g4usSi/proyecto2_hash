@@ -210,6 +210,10 @@ class MainWindow(QtWidgets.QMainWindow):
         if confirm == QtWidgets.QMessageBox.Yes:
             try:
                 Storage.eliminar_archivo(art.archivo)
+                self.tabla.eliminar(art.hash)
+                self.indice_autor.eliminar(art)
+                self.indice_titulo.eliminar(art)
+                self.mostrar_resultados(self.tabla.listar_todos())
                 QtWidgets.QMessageBox.information(self, "Éxito", "Archivo eliminado.")
             except Exception as e:
                 QtWidgets.QMessageBox.warning(self, "Error", str(e))
