@@ -1,7 +1,6 @@
 import os, json
 from core.articulos import articulo
 
-
 class Storage:
     File = "articulos_db.txt"
 
@@ -30,16 +29,32 @@ class Storage:
 
     # --- CRUD de archivos ---
     @staticmethod
+    def crear_archivo(nombre_archivo, contenido_inicial=""):
+        """Crea un nuevo archivo con contenido inicial"""
+        if os.path.exists(nombre_archivo):
+            raise FileExistsError(f"El archivo '{nombre_archivo}' ya existe")
+        
+        # Crear directorios padre si no existen
+        directorio = os.path.dirname(nombre_archivo)
+        if directorio and not os.path.exists(directorio):
+            os.makedirs(directorio)
+        
+        with open(nombre_archivo, "w", encoding="utf-8") as f:
+            f.write(contenido_inicial)
+        
+        return True
+
+    @staticmethod
     def leer_archivo(nombre_archivo):
         if not os.path.exists(nombre_archivo):
-            raise FileNotFoundError("El archivo no existe")
+            raise FileNotFoundError(f"El archivo '{nombre_archivo}' no existe")
         with open(nombre_archivo, "r", encoding="utf-8") as f:
             return f.read()
 
     @staticmethod
     def actualizar_archivo(nombre_archivo, nuevo_contenido):
         if not os.path.exists(nombre_archivo):
-            raise FileNotFoundError("El archivo no existe")
+            raise FileNotFoundError(f"El archivo '{nombre_archivo}' no existe")
         with open(nombre_archivo, "w", encoding="utf-8") as f:
             f.write(nuevo_contenido)
 
@@ -47,3 +62,24 @@ class Storage:
     def eliminar_archivo(nombre_archivo):
         if os.path.exists(nombre_archivo):
             os.remove(nombre_archivo)
+        else:
+            raise FileNotFoundError(f"El archivo '{nombre_archivo}' no existe")
+
+    @staticmethod
+    def archivo_existe(nombre_archivo):
+        """Verifica si un archivo existe"""
+        return os.path.exists(nombre_archivo)
+
+    @staticmethod
+    def obtener_info_archivo(nombre_archivo):
+        """Obtiene información del archivo (tamaño, fecha modificación, etc.)"""
+        if not os.path.exists(nombre_archivo):
+            raise FileNotFoundError(f"El archivo '{nombre_archivo}' no existe")
+        
+        stats = os.stat(nombre_archivo)
+        return {
+            'tamaño': stats.st_size,
+            'modificado': stats.st_mtime,
+            'creado': stats.st_ctime,
+            'ruta_completa': os.path.abspath(nombre_archivo)
+        }
