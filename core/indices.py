@@ -54,3 +54,33 @@ class IndiceTitulo:
             [art for lista in self.indice.values() for art in lista],
             key=lambda a: a.titulo.lower() if a.titulo else ""
         )
+
+
+class IndiceAnio:
+    def __init__(self):
+        self.indice = {}
+    
+    def agregar(self, art):
+        clave = str(art.anio).strip() 
+        if clave not in self.indice:
+            self.indice[clave] = [art]
+        else:
+            if not any(a.hash == art.hash for a in self.indice[clave]):
+                self.indice[clave].append(art)
+    
+    def eliminar(self, art):
+        clave = str(art.anio).strip()
+        if clave in self.indice:
+            self.indice[clave] = [a for a in self.indice[clave] if a.hash != art.hash]
+            if not self.indice[clave]:
+                del self.indice[clave]
+    
+    def buscar(self, anio):
+        anio_str = str(anio).strip()
+        return [art for k, lista in self.indice.items() if anio_str in k for art in lista]
+    
+    def listar(self):
+        return sorted(
+            [art for lista in self.indice.values() for art in lista],
+            key=lambda a: int(a.anio) if a.anio else 0
+        )

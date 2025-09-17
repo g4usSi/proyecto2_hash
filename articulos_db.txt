@@ -1,0 +1,2 @@
+{"titulo": "Introducci\u00f3n a Python", "autor": "Gabriel Molina", "anio": "2020", "archivo": "Molina_2020_Introducci\u00f3n_a_Python.txt", "hash": "2113467928", "extension": "txt"}
+{"titulo": "Redes y sus conexiones", "autor": "Luis Rodriguez", "anio": "2002", "archivo": "Rodriguez_2002_Redes_y_sus_conexiones.txt", "hash": "4268057591", "extension": "txt"}

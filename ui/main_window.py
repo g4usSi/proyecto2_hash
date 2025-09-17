@@ -1,10 +1,12 @@
 import sys
 import os
+import datetime
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from PyQt5 import QtWidgets, QtCore, QtGui
 from core import HashTable, IndiceAutor, IndiceTitulo, Storage, articulo, HashUtils
+from core.indices import IndiceAnio  # Asegurarse de importar IndiceAnio
 
 class VentanaEditor(QtWidgets.QDialog):
     """Ventana modal dedicada para editar archivos"""
@@ -187,6 +189,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.tabla = HashTable()
         self.indice_autor = IndiceAutor()
         self.indice_titulo = IndiceTitulo()
+        self.indice_anio = IndiceAnio()
         self.cargar_base_datos()
 
         # --- Layout principal ---
@@ -262,6 +265,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 self.tabla.insertar(art.hash, art)
                 self.indice_autor.agregar(art)
                 self.indice_titulo.agregar(art)
+                self.indice_anio.agregar(art)
                 articulos_validos.append(art)
             else:
                 # Archivo no existe, marcarlo como huérfano
@@ -361,7 +365,7 @@ class MainWindow(QtWidgets.QMainWindow):
     def aplicar_busqueda(self):
         titulo = self.input_titulo.text().strip().lower()
         autor = self.input_autor.text().strip().lower()
-
+        anio = self.input_anio.text().strip()
         matches = []
 
         if titulo:
@@ -376,8 +380,13 @@ class MainWindow(QtWidgets.QMainWindow):
                 # unir con matches existentes sin duplicar
                 res_list = res if isinstance(res, list) else [res]
                 matches.extend(r for r in res_list if r not in matches)
+        if anio:
+            res = self.indice_anio.buscar(anio)
+            if res:
+                res_list = res if isinstance(res, list) else [res]
+                matches.extend(r for r in res_list if r not in matches)
 
-        if not titulo and not autor:
+        if not titulo and not autor and not anio:
             matches = self.tabla.listar_todos()
 
         self.mostrar_resultados(matches)
@@ -549,6 +558,21 @@ class MainWindow(QtWidgets.QMainWindow):
             if not (titulo and autor and anio and archivo):
                 QtWidgets.QMessageBox.warning(dialog, "Error", "Todos los campos de metadatos son obligatorios.")
                 return
+
+            #Revisar que año sea un número válido
+            if not anio.isdigit() or len(anio) !=4:
+                QtWidgets.QMessageBox.warning(self, "Error", "El año debe ser un número entre 1900 y 2025.")
+                return
+            #Validacion del año
+            anio_actual = datetime.datetime.now().year
+            if int(anio) > anio_actual:
+                QtWidgets.QMessageBox.warning(dialog, "Error", f"El año no puede ser mayor que {anio_actual}.")
+                return
+            #Revisar duplicado (por título)
+            for art in self.tabla.listar_todos():
+                if art.titulo.lower() == titulo.lower():
+                    QtWidgets.QMessageBox.warning(self, "Error", "Ya existe un artículo con este título.")
+                    return
 
             # Asegurar que el archivo termine en .txt
             if not archivo.endswith('.txt'):
