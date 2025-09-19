@@ -64,14 +64,19 @@ class VentanaEditor(QtWidgets.QDialog):
             btn_guardar.clicked.connect(self.guardar_archivo)
             btn_guardar.setStyleSheet("""
                 QPushButton {
-                    background-color: #4CAF50;
+                    background-color: #28a745;
                     color: white;
                     border: none;
-                    padding: 8px 16px;
-                    border-radius: 4px;
+                    padding: 10px 20px;
+                    border-radius: 6px;
+                    font-weight: bold;
+                    font-size: 13px;
                 }
                 QPushButton:hover {
-                    background-color: #45a049;
+                    background-color: #218838;
+                }
+                QPushButton:pressed {
+                    background-color: #1e7e34;
                 }
             """)
             
@@ -79,14 +84,19 @@ class VentanaEditor(QtWidgets.QDialog):
             btn_descartar.clicked.connect(self.descartar_cambios)
             btn_descartar.setStyleSheet("""
                 QPushButton {
-                    background-color: #f44336;
+                    background-color: #dc3545;
                     color: white;
                     border: none;
-                    padding: 8px 16px;
-                    border-radius: 4px;
+                    padding: 10px 20px;
+                    border-radius: 6px;
+                    font-weight: bold;
+                    font-size: 13px;
                 }
                 QPushButton:hover {
-                    background-color: #da190b;
+                    background-color: #c82333;
+                }
+                QPushButton:pressed {
+                    background-color: #bd2130;
                 }
             """)
             
@@ -100,11 +110,16 @@ class VentanaEditor(QtWidgets.QDialog):
                 background-color: #6c757d;
                 color: white;
                 border: none;
-                padding: 8px 16px;
-                border-radius: 4px;
+                padding: 10px 20px;
+                border-radius: 6px;
+                font-weight: bold;
+                font-size: 13px;
             }
             QPushButton:hover {
                 background-color: #5a6268;
+            }
+            QPushButton:pressed {
+                background-color: #545b62;
             }
         """)
         
@@ -202,6 +217,23 @@ class MainWindow(QtWidgets.QMainWindow):
         btn_nuevo = QtWidgets.QPushButton("Nuevo Articulo")
         btn_nuevo.clicked.connect(self.nuevo_articulo)
         btn_nuevo.setMinimumHeight(40)
+        btn_nuevo.setStyleSheet("""
+            QPushButton {
+                background: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1, stop: 0 #007bff, stop: 1 #0056b3);
+                color: white;
+                border: none;
+                border-radius: 8px;
+                font-weight: bold;
+                font-size: 14px;
+                padding: 12px;
+            }
+            QPushButton:hover {
+                background: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1, stop: 0 #0056b3, stop: 1 #004085);
+            }
+            QPushButton:pressed {
+                background: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1, stop: 0 #004085, stop: 1 #002752);
+            }
+        """)
         sidebar.addWidget(btn_nuevo)
         sidebar.addStretch()
 
@@ -216,9 +248,41 @@ class MainWindow(QtWidgets.QMainWindow):
         
         btn_aplicar_busqueda = QtWidgets.QPushButton("Aplicar Busqueda")
         btn_aplicar_busqueda.clicked.connect(self.aplicar_busqueda)
+        btn_aplicar_busqueda.setStyleSheet("""
+            QPushButton {
+                background-color: #17a2b8;
+                color: white;
+                border: none;
+                padding: 8px 16px;
+                border-radius: 5px;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background-color: #138496;
+            }
+            QPushButton:pressed {
+                background-color: #117a8b;
+            }
+        """)
         
         btn_limpiar = QtWidgets.QPushButton("Limpiar")
         btn_limpiar.clicked.connect(self.limpiar_busqueda)
+        btn_limpiar.setStyleSheet("""
+            QPushButton {
+                background-color: #ffc107;
+                color: #212529;
+                border: none;
+                padding: 8px 16px;
+                border-radius: 5px;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background-color: #e0a800;
+            }
+            QPushButton:pressed {
+                background-color: #d39e00;
+            }
+        """)
 
         form_layout.addRow("Titulo:", self.input_titulo)
         form_layout.addRow("Autor(es):", self.input_autor)
@@ -294,7 +358,7 @@ class MainWindow(QtWidgets.QMainWindow):
         dialog.setText(mensaje)
         
         btn_limpiar = dialog.addButton("🧹 Limpiar base de datos", QtWidgets.QMessageBox.YesRole)
-        btn_ignorar = dialog.addButton("👁️ Mantener registros", QtWidgets.QMessageBox.NoRole)
+        btn_ignorar = dialog.addButton("Mantener registros", QtWidgets.QMessageBox.NoRole)
         btn_ver_detalle = dialog.addButton("📋 Ver detalles", QtWidgets.QMessageBox.HelpRole)
         
         dialog.setDefaultButton(btn_ver_detalle)
@@ -336,8 +400,58 @@ class MainWindow(QtWidgets.QMainWindow):
         # Botones
         buttons_layout = QtWidgets.QHBoxLayout()
         btn_limpiar_seleccionados = QtWidgets.QPushButton("🧹 Limpiar seleccionados")
+        btn_limpiar_seleccionados.setStyleSheet("""
+            QPushButton {
+                background-color: #dc3545;
+                color: white;
+                border: none;
+                padding: 8px 16px;
+                border-radius: 5px;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background-color: #c82333;
+            }
+            QPushButton:pressed {
+                background-color: #bd2130;
+            }
+        """)
+        
         btn_limpiar_todos = QtWidgets.QPushButton("🧹 Limpiar todos")
+        btn_limpiar_todos.setStyleSheet("""
+            QPushButton {
+                background-color: #dc3545;
+                color: white;
+                border: none;
+                padding: 8px 16px;
+                border-radius: 5px;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background-color: #c82333;
+            }
+            QPushButton:pressed {
+                background-color: #bd2130;
+            }
+        """)
+        
         btn_cerrar = QtWidgets.QPushButton("❌ Cerrar")
+        btn_cerrar.setStyleSheet("""
+            QPushButton {
+                background-color: #6c757d;
+                color: white;
+                border: none;
+                padding: 8px 16px;
+                border-radius: 5px;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background-color: #5a6268;
+            }
+            QPushButton:pressed {
+                background-color: #545b62;
+            }
+        """)
         
         buttons_layout.addWidget(btn_limpiar_seleccionados)
         buttons_layout.addWidget(btn_limpiar_todos)
@@ -468,9 +582,59 @@ class MainWindow(QtWidgets.QMainWindow):
             btn_eliminar = QtWidgets.QPushButton("Eliminar")
 
             # Estilos para botones
-            btn_ver.setStyleSheet("QPushButton { background-color: #17a2b8; color: white; border: none; padding: 5px 10px; border-radius: 3px; }")
-            btn_modificar.setStyleSheet("QPushButton { background-color: #ffc107; color: black; border: none; padding: 5px 10px; border-radius: 3px; }")
-            btn_eliminar.setStyleSheet("QPushButton { background-color: #dc3545; color: white; border: none; padding: 5px 10px; border-radius: 3px; }")
+            btn_ver.setStyleSheet("""
+                QPushButton {
+                    background-color: #17a2b8;
+                    color: white;
+                    border: none;
+                    padding: 8px 12px;
+                    border-radius: 4px;
+                    font-weight: bold;
+                    min-width: 60px;
+                }
+                QPushButton:hover {
+                    background-color: #138496;
+                }
+                QPushButton:pressed {
+                    background-color: #117a8b;
+                }
+            """)
+            
+            btn_modificar.setStyleSheet("""
+                QPushButton {
+                    background-color: #28a745;
+                    color: white;
+                    border: none;
+                    padding: 8px 12px;
+                    border-radius: 4px;
+                    font-weight: bold;
+                    min-width: 60px;
+                }
+                QPushButton:hover {
+                    background-color: #218838;
+                }
+                QPushButton:pressed {
+                    background-color: #1e7e34;
+                }
+            """)
+            
+            btn_eliminar.setStyleSheet("""
+                QPushButton {
+                    background-color: #dc3545;
+                    color: white;
+                    border: none;
+                    padding: 8px 12px;
+                    border-radius: 4px;
+                    font-weight: bold;
+                    min-width: 60px;
+                }
+                QPushButton:hover {
+                    background-color: #c82333;
+                }
+                QPushButton:pressed {
+                    background-color: #bd2130;
+                }
+            """)
 
             btn_ver.clicked.connect(lambda _, a=art: self.ver_archivo(a))
             btn_modificar.clicked.connect(lambda _, a=art: self.editar_archivo(a))
@@ -502,6 +666,23 @@ class MainWindow(QtWidgets.QMainWindow):
         
         # Boton para generar nombre automatico
         btn_generar_nombre = QtWidgets.QPushButton("Generar nombre automatico")
+        btn_generar_nombre.setStyleSheet("""
+            QPushButton {
+                background-color: #6f42c1;
+                color: white;
+                border: none;
+                padding: 6px 12px;
+                border-radius: 4px;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background-color: #5a359a;
+            }
+            QPushButton:pressed {
+                background-color: #4e2a84;
+            }
+        """)
+        
         archivo_layout = QtWidgets.QHBoxLayout()
         archivo_layout.addWidget(input_archivo)
         archivo_layout.addWidget(btn_generar_nombre)
@@ -522,7 +703,42 @@ class MainWindow(QtWidgets.QMainWindow):
         # Botones
         buttons_layout = QtWidgets.QHBoxLayout()
         btn_guardar = QtWidgets.QPushButton("Crear Articulo")
+        btn_guardar.setStyleSheet("""
+            QPushButton {
+                background-color: #28a745;
+                color: white;
+                border: none;
+                padding: 10px 20px;
+                border-radius: 6px;
+                font-weight: bold;
+                font-size: 13px;
+            }
+            QPushButton:hover {
+                background-color: #218838;
+            }
+            QPushButton:pressed {
+                background-color: #1e7e34;
+            }
+        """)
+        
         btn_cancelar = QtWidgets.QPushButton("Cancelar")
+        btn_cancelar.setStyleSheet("""
+            QPushButton {
+                background-color: #6c757d;
+                color: white;
+                border: none;
+                padding: 10px 20px;
+                border-radius: 6px;
+                font-weight: bold;
+                font-size: 13px;
+            }
+            QPushButton:hover {
+                background-color: #5a6268;
+            }
+            QPushButton:pressed {
+                background-color: #545b62;
+            }
+        """)
         
         buttons_layout.addWidget(btn_guardar)
         buttons_layout.addWidget(btn_cancelar)
