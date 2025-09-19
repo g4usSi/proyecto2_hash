@@ -357,9 +357,9 @@ class MainWindow(QtWidgets.QMainWindow):
         dialog.setWindowTitle("Archivos Huérfanos Detectados")
         dialog.setText(mensaje)
         
-        btn_limpiar = dialog.addButton("🧹 Limpiar base de datos", QtWidgets.QMessageBox.YesRole)
+        btn_limpiar = dialog.addButton(" Limpiar base de datos", QtWidgets.QMessageBox.YesRole)
         btn_ignorar = dialog.addButton("Mantener registros", QtWidgets.QMessageBox.NoRole)
-        btn_ver_detalle = dialog.addButton("📋 Ver detalles", QtWidgets.QMessageBox.HelpRole)
+        btn_ver_detalle = dialog.addButton(" Ver detalles", QtWidgets.QMessageBox.HelpRole)
         
         dialog.setDefaultButton(btn_ver_detalle)
         dialog.exec_()
@@ -390,7 +390,7 @@ class MainWindow(QtWidgets.QMainWindow):
         # Lista de artículos huérfanos
         lista = QtWidgets.QListWidget()
         for art in articulos_huerfanos:
-            item_text = f"📄 {art.titulo}\n👤 {art.autor} ({art.anio})\n📁 {art.archivo}\n"
+            item_text = f" {art.titulo}\n👤 {art.autor} ({art.anio})\n {art.archivo}\n"
             item = QtWidgets.QListWidgetItem(item_text)
             lista.addItem(item)
         
@@ -399,7 +399,7 @@ class MainWindow(QtWidgets.QMainWindow):
         
         # Botones
         buttons_layout = QtWidgets.QHBoxLayout()
-        btn_limpiar_seleccionados = QtWidgets.QPushButton("🧹 Limpiar seleccionados")
+        btn_limpiar_seleccionados = QtWidgets.QPushButton("Limpiar seleccionados")
         btn_limpiar_seleccionados.setStyleSheet("""
             QPushButton {
                 background-color: #dc3545;
@@ -417,7 +417,7 @@ class MainWindow(QtWidgets.QMainWindow):
             }
         """)
         
-        btn_limpiar_todos = QtWidgets.QPushButton("🧹 Limpiar todos")
+        btn_limpiar_todos = QtWidgets.QPushButton("Limpiar todos")
         btn_limpiar_todos.setStyleSheet("""
             QPushButton {
                 background-color: #dc3545;
@@ -435,7 +435,7 @@ class MainWindow(QtWidgets.QMainWindow):
             }
         """)
         
-        btn_cerrar = QtWidgets.QPushButton("❌ Cerrar")
+        btn_cerrar = QtWidgets.QPushButton("Cerrar")
         btn_cerrar.setStyleSheet("""
             QPushButton {
                 background-color: #6c757d;
@@ -539,7 +539,7 @@ class MainWindow(QtWidgets.QMainWindow):
             no_results_layout = QtWidgets.QVBoxLayout(no_results_widget)
             
             # Ícono y mensaje
-            icon_label = QtWidgets.QLabel("🔍")
+            icon_label = QtWidgets.QLabel("BUSCANDO...")
             icon_label.setAlignment(QtCore.Qt.AlignCenter)
             icon_label.setStyleSheet("font-size: 48px; color: #6c757d; margin-bottom: 10px;")
             
@@ -855,10 +855,10 @@ class MainWindow(QtWidgets.QMainWindow):
         confirm = QtWidgets.QMessageBox.question(
             self, "Confirmar Eliminación", 
             f"¿Estás seguro de eliminar permanentemente?\n\n"
-            f"📄 Artículo: {art.titulo}\n"
-            f"👤 Autor: {art.autor}\n"
-            f"📁 Archivo: {art.archivo}\n\n"
-            f"⚠️ Esta acción no se puede deshacer.",
+            f"Artículo: {art.titulo}\n"
+            f"Autor: {art.autor}\n"
+            f"Archivo: {art.archivo}\n\n"
+            f"Esta acción no se puede deshacer.",
             QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No
         )
         
@@ -885,9 +885,9 @@ class MainWindow(QtWidgets.QMainWindow):
                 
                 # 5. Mostrar mensaje de confirmación
                 if archivo_eliminado:
-                    mensaje = f"✅ Artículo eliminado completamente:\n- Archivo físico eliminado\n- Metadatos eliminados de la base de datos"
+                    mensaje = f" Artículo eliminado completamente:\n- Archivo físico eliminado\n- Metadatos eliminados de la base de datos"
                 else:
-                    mensaje = f"⚠️ Artículo eliminado de la base de datos:\n- El archivo físico no existía\n- Metadatos eliminados correctamente"
+                    mensaje = f" Artículo eliminado de la base de datos:\n- El archivo físico no existía\n- Metadatos eliminados correctamente"
                 
                 QtWidgets.QMessageBox.information(self, "Eliminación Exitosa", mensaje)
                 
